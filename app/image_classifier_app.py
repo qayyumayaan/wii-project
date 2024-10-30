@@ -112,8 +112,8 @@ class ImageClassifierApp:
             self.image_buttons[index].image = img_tk  # Keep reference
 
     def confirm_selection(self):
-        selected_dir = "out/selected_images"
-        not_selected_dir = "out/not_selected_images"
+        selected_dir = "out/mii_images"
+        not_selected_dir = "out/not_mii_images"
 
         # Create directories if they don't exist
         if not os.path.exists(selected_dir):
@@ -121,7 +121,7 @@ class ImageClassifierApp:
         if not os.path.exists(not_selected_dir):
             os.makedirs(not_selected_dir)
 
-        # Move selected images to "selected_images" and unselected to "not_selected_images"
+        # Move selected images to "mii_images" and unselected to "not_mii_images"
         for i, image_path in enumerate(self.segmented_images):
             if i in self.selected_images:
                 shutil.move(image_path, os.path.join(selected_dir, os.path.basename(image_path)))
