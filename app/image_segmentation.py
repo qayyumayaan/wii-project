@@ -15,6 +15,7 @@ def segment_image_into_blocks(image_path, block_size=(50, 50), resize_dims=(1100
     # Load the image
     image = cv2.imread(image_path)
     h, w, _ = image.shape
+    print(f"Original image path: {image_path}")
     print(f"Original image size: {w}x{h}")
 
     # Resize the image to the specified dimensions (1100x600)
