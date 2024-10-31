@@ -6,6 +6,7 @@ from tkinter import *
 from tkinter import filedialog
 from PIL import Image, ImageTk
 from image_segmentation import segment_image_into_blocks
+import uuid
 
 class ImageClassifierApp:
     def __init__(self, master):
@@ -15,6 +16,7 @@ class ImageClassifierApp:
 
         self.segmented_images = []  # List to store the paths of segmented images
         self.selected_images = []   # List to store the selected images
+        self.image_buttons = []     # List to store image buttons
 
         self.label = Label(master, text="Upload an image to begin")
         self.label.pack()
@@ -33,11 +35,11 @@ class ImageClassifierApp:
         self.scrollbar_y = Scrollbar(self.canvas_frame, orient=VERTICAL, command=self.canvas.yview)
         self.scrollbar_x = Scrollbar(self.canvas_frame, orient=HORIZONTAL, command=self.canvas.xview)
         self.canvas.config(yscrollcommand=self.scrollbar_y.set, xscrollcommand=self.scrollbar_x.set)
-        
+
         self.scrollbar_y.pack(side=RIGHT, fill=Y)
         self.scrollbar_x.pack(side=BOTTOM, fill=X)
         self.canvas.pack(side=LEFT, fill=BOTH, expand=True)
-        
+
         # A frame inside the canvas to hold the images
         self.scrollable_frame = Frame(self.canvas)
         self.canvas.create_window((0, 0), window=self.scrollable_frame, anchor="nw")
@@ -49,8 +51,11 @@ class ImageClassifierApp:
     def upload_image(self):
         # Open a file dialog to upload an image
         file_path = filedialog.askopenfilename(title="Select an image")
-        
+
         if file_path:
+            # Clear previous segmented images from disk
+            self.clear_segmented_images()
+
             # Segment the image into 50x50 pixel blocks after resizing and display them
             self.segmented_images, self.num_columns, self.num_rows = segment_image_into_blocks(
                 file_path,
@@ -61,14 +66,20 @@ class ImageClassifierApp:
             self.display_images()
             self.confirm_button.config(state=NORMAL)
 
+    def clear_segmented_images(self):
+        output_dir = "out/segmented_images"
+        if os.path.exists(output_dir):
+            shutil.rmtree(output_dir)
+        os.makedirs(output_dir)
+
     def display_images(self):
         # Clear the previous images
         for widget in self.scrollable_frame.winfo_children():
             widget.destroy()
 
         self.selected_images = []  # Reset selected images
-
         self.image_buttons = []
+
         for i, image_path in enumerate(self.segmented_images):
             # Open each segmented image
             img = Image.open(image_path)
@@ -116,21 +127,50 @@ class ImageClassifierApp:
         not_selected_dir = "out/not_mii_images"
 
         # Create directories if they don't exist
-        if not os.path.exists(selected_dir):
-            os.makedirs(selected_dir)
-        if not os.path.exists(not_selected_dir):
-            os.makedirs(not_selected_dir)
+        os.makedirs(selected_dir, exist_ok=True)
+        os.makedirs(not_selected_dir, exist_ok=True)
 
         # Move selected images to "mii_images" and unselected to "not_mii_images"
         for i, image_path in enumerate(self.segmented_images):
             if i in self.selected_images:
-                shutil.move(image_path, os.path.join(selected_dir, os.path.basename(image_path)))
+                dest_dir = selected_dir
             else:
-                shutil.move(image_path, os.path.join(not_selected_dir, os.path.basename(image_path)))
+                dest_dir = not_selected_dir
+
+            # Generate a unique filename
+            basename = os.path.basename(image_path)
+            name, ext = os.path.splitext(basename)
+            unique_id = uuid.uuid4().hex  # Generate a unique hexadecimal string
+            new_filename = f"{name}_{unique_id}{ext}"
+            dest_path = os.path.join(dest_dir, new_filename)
+
+            # Move and rename the image
+            shutil.move(image_path, dest_path)
 
         print("Images classified and moved!")
         self.label.config(text="Classification complete!")
         self.confirm_button.config(state=DISABLED)
+
+        # Clear memory references and reset variables
+        self.clear_memory()
+
+    def clear_memory(self):
+        # Destroy all widgets in the scrollable frame
+        for widget in self.scrollable_frame.winfo_children():
+            widget.destroy()
+
+        # Reset image lists
+        self.segmented_images = []
+        self.selected_images = []
+        self.image_buttons = []
+
+        # Clear the canvas
+        self.canvas.delete("all")
+        self.canvas.config(scrollregion=self.canvas.bbox(ALL))
+
+        # Force garbage collection
+        import gc
+        gc.collect()
 
     def on_frame_configure(self, event):
         # Update scroll region when the frame is resized
