@@ -189,16 +189,27 @@ class ImageClassifierApp:
         os.makedirs(selected_dir, exist_ok=True)
         os.makedirs(not_selected_dir, exist_ok=True)
 
-        # Move selected images to "mii_images" and unselected to "not_mii_images"
+        # Flag to control whether backgrounds get unique IDs
+        ID_on_backgrounds = True
+
         for i, image_path in enumerate(self.segmented_images):
-            dest_dir = selected_dir if i in self.selected_images else not_selected_dir
+            # Check if the image is selected or not
+            is_selected = i in (self.saved_selection if ID_on_backgrounds else self.selected_images)
+            dest_dir = selected_dir if is_selected else not_selected_dir
+            
+            # Determine if a unique ID should be appended
             basename = os.path.basename(image_path)
             name, ext = os.path.splitext(basename)
-            unique_id = uuid.uuid4().hex  # Generate a unique hexadecimal string
-            new_filename = f"{name}_{unique_id}{ext}"
+            if is_selected or ID_on_backgrounds:
+                unique_id = uuid.uuid4().hex  # Generate a unique ID
+                new_filename = f"{name}_{unique_id}{ext}"
+            else:
+                new_filename = basename  # Use original name for unselected backgrounds
+
             dest_path = os.path.join(dest_dir, new_filename)
 
-            shutil.move(image_path, dest_path)
+        # Move the file
+        shutil.move(image_path, dest_path)
 
         print("Images classified and moved!")
         self.label.config(text="Classification complete!")
