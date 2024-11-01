@@ -18,6 +18,7 @@ class ImageClassifierApp:
         self.selected_images = []   # List to store the selected images
         self.saved_selection = []   # List to store the saved selection indexes
         self.image_buttons = []     # List to store image buttons
+        self.reuse_selection = BooleanVar(value=True)  # Boolean toggle for reusing selections
 
         self.label = Label(master, text="Upload an image to begin")
         self.label.pack()
@@ -27,6 +28,12 @@ class ImageClassifierApp:
 
         self.confirm_button = Button(master, text="Confirm Selection", command=self.confirm_selection, state=DISABLED)
         self.confirm_button.pack()
+
+        self.unselect_all_button = Button(master, text="Unselect All", command=self.unselect_all, state=DISABLED)
+        self.unselect_all_button.pack()
+
+        self.reuse_toggle = Checkbutton(master, text="Reuse Selection", variable=self.reuse_selection)
+        self.reuse_toggle.pack()
 
         self.canvas_frame = Frame(master)
         self.canvas_frame.pack(fill=BOTH, expand=True)
@@ -66,6 +73,7 @@ class ImageClassifierApp:
             )
             self.display_images()
             self.confirm_button.config(state=NORMAL)
+            self.unselect_all_button.config(state=NORMAL)
 
     def clear_segmented_images(self):
         output_dir = "out/segmented_images"
@@ -78,7 +86,8 @@ class ImageClassifierApp:
         for widget in self.scrollable_frame.winfo_children():
             widget.destroy()
 
-        self.selected_images = self.saved_selection.copy()  # Load saved selection
+        # Use saved selections if reuse_selection is enabled
+        self.selected_images = self.saved_selection.copy() if self.reuse_selection.get() else []
         self.image_buttons = []
 
         for i, image_path in enumerate(self.segmented_images):
@@ -101,8 +110,8 @@ class ImageClassifierApp:
                 pady=2
             )  # Grid layout with dynamic columns
 
-            # Apply saved selection appearance
-            if i in self.saved_selection:
+            # Apply saved selection appearance if reuse_selection is enabled
+            if self.reuse_selection.get() and i in self.saved_selection:
                 self.shrink_image(image_button, image_path)
 
             self.image_buttons.append(image_button)
@@ -133,12 +142,19 @@ class ImageClassifierApp:
         button.config(image=img_tk)
         button.image = img_tk  # Keep reference
 
+    def unselect_all(self):
+        # Clear all selections
+        for index in self.selected_images:
+            self.restore_image(self.image_buttons[index], self.segmented_images[index])
+        self.selected_images.clear()
+
     def confirm_selection(self):
         selected_dir = "out/mii_images"
         not_selected_dir = "out/not_mii_images"
 
-        # Save current selection
-        self.saved_selection = self.selected_images.copy()
+        # Save current selection if reuse_selection is enabled
+        if self.reuse_selection.get():
+            self.saved_selection = self.selected_images.copy()
 
         # Create directories if they don't exist
         os.makedirs(selected_dir, exist_ok=True)
@@ -158,6 +174,7 @@ class ImageClassifierApp:
         print("Images classified and moved!")
         self.label.config(text="Classification complete!")
         self.confirm_button.config(state=DISABLED)
+        self.unselect_all_button.config(state=DISABLED)
 
         # Clear memory references and reset variables
         self.clear_memory()
