@@ -16,6 +16,7 @@ class ImageClassifierApp:
 
         self.segmented_images = []  # List to store the paths of segmented images
         self.selected_images = []   # List to store the selected images
+        self.saved_selection = []   # List to store the saved selection indexes
         self.image_buttons = []     # List to store image buttons
 
         self.label = Label(master, text="Upload an image to begin")
@@ -77,7 +78,7 @@ class ImageClassifierApp:
         for widget in self.scrollable_frame.winfo_children():
             widget.destroy()
 
-        self.selected_images = []  # Reset selected images
+        self.selected_images = self.saved_selection.copy()  # Load saved selection
         self.image_buttons = []
 
         for i, image_path in enumerate(self.segmented_images):
@@ -100,6 +101,10 @@ class ImageClassifierApp:
                 pady=2
             )  # Grid layout with dynamic columns
 
+            # Apply saved selection appearance
+            if i in self.saved_selection:
+                self.shrink_image(image_button, image_path)
+
             self.image_buttons.append(image_button)
 
         # Update scroll region based on the new content
@@ -109,22 +114,31 @@ class ImageClassifierApp:
         # Toggle the selection of an image and change the button size to simulate shrinking
         if index in self.selected_images:
             self.selected_images.remove(index)
-            # Restore the original size of the button image (32x32)
-            img = Image.open(image_path).resize((32, 32), Image.Resampling.LANCZOS)
-            img_tk = ImageTk.PhotoImage(img)
-            self.image_buttons[index].config(image=img_tk)
-            self.image_buttons[index].image = img_tk  # Keep reference
+            self.restore_image(self.image_buttons[index], image_path)
         else:
             self.selected_images.append(index)
-            # Shrink the image size (20x20) to simulate the selection
-            img = Image.open(image_path).resize((20, 20), Image.Resampling.LANCZOS)
-            img_tk = ImageTk.PhotoImage(img)
-            self.image_buttons[index].config(image=img_tk)
-            self.image_buttons[index].image = img_tk  # Keep reference
+            self.shrink_image(self.image_buttons[index], image_path)
+
+    def shrink_image(self, button, image_path):
+        # Shrink the image size (20x20) to simulate the selection
+        img = Image.open(image_path).resize((20, 20), Image.Resampling.LANCZOS)
+        img_tk = ImageTk.PhotoImage(img)
+        button.config(image=img_tk)
+        button.image = img_tk  # Keep reference
+
+    def restore_image(self, button, image_path):
+        # Restore the original size of the button image (32x32)
+        img = Image.open(image_path).resize((32, 32), Image.Resampling.LANCZOS)
+        img_tk = ImageTk.PhotoImage(img)
+        button.config(image=img_tk)
+        button.image = img_tk  # Keep reference
 
     def confirm_selection(self):
         selected_dir = "out/mii_images"
         not_selected_dir = "out/not_mii_images"
+
+        # Save current selection
+        self.saved_selection = self.selected_images.copy()
 
         # Create directories if they don't exist
         os.makedirs(selected_dir, exist_ok=True)
@@ -132,19 +146,13 @@ class ImageClassifierApp:
 
         # Move selected images to "mii_images" and unselected to "not_mii_images"
         for i, image_path in enumerate(self.segmented_images):
-            if i in self.selected_images:
-                dest_dir = selected_dir
-            else:
-                dest_dir = not_selected_dir
-
-            # Generate a unique filename
+            dest_dir = selected_dir if i in self.selected_images else not_selected_dir
             basename = os.path.basename(image_path)
             name, ext = os.path.splitext(basename)
             unique_id = uuid.uuid4().hex  # Generate a unique hexadecimal string
             new_filename = f"{name}_{unique_id}{ext}"
             dest_path = os.path.join(dest_dir, new_filename)
 
-            # Move and rename the image
             shutil.move(image_path, dest_path)
 
         print("Images classified and moved!")
@@ -161,7 +169,6 @@ class ImageClassifierApp:
 
         # Reset image lists
         self.segmented_images = []
-        self.selected_images = []
         self.image_buttons = []
 
         # Clear the canvas
