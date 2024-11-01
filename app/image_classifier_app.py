@@ -26,6 +26,9 @@ class ImageClassifierApp:
         self.upload_button = Button(master, text="Upload Image", command=self.upload_image)
         self.upload_button.pack()
 
+        self.mass_process_button = Button(master, text="Mass Process", command=self.mass_process_images)
+        self.mass_process_button.pack()
+
         self.confirm_button = Button(master, text="Confirm Selection", command=self.confirm_selection, state=DISABLED)
         self.confirm_button.pack()
 
@@ -74,6 +77,32 @@ class ImageClassifierApp:
             self.display_images()
             self.confirm_button.config(state=NORMAL)
             self.unselect_all_button.config(state=NORMAL)
+
+    def mass_process_images(self):
+        # Open a directory dialog to select a folder of images
+        folder_path = filedialog.askdirectory(title="Select a folder of images")
+        
+        if folder_path:
+            for filename in os.listdir(folder_path):
+                file_path = os.path.join(folder_path, filename)
+                
+                # Process only image files
+                if os.path.isfile(file_path) and file_path.lower().endswith(('.png', '.jpg', '.jpeg', '.bmp')):
+                    self.clear_segmented_images()
+
+                    # Segment the image into 50x50 pixel blocks
+                    self.segmented_images, _, _ = segment_image_into_blocks(
+                        file_path,
+                        block_size=(50, 50),
+                        resize_dims=(900, 500),
+                        output_dir="out/segmented_images"
+                    )
+
+                    # Use the saved selection to classify images
+                    self.confirm_selection()
+
+            print("Mass processing complete!")
+            self.label.config(text="Mass processing complete!")
 
     def clear_segmented_images(self):
         output_dir = "out/segmented_images"
