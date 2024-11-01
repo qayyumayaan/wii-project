@@ -60,7 +60,7 @@ class ImageClassifierApp:
             self.segmented_images, self.num_columns, self.num_rows = segment_image_into_blocks(
                 file_path,
                 block_size=(50, 50),
-                resize_dims=(1100, 600),
+                resize_dims=(900, 500),
                 output_dir="out/segmented_images"
             )
             self.display_images()
