@@ -5,3 +5,6 @@ out
 segmented_images
 data-for-preprocessing
 data
+selected_images.json
+
+old
