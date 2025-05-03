@@ -1,5 +1,3 @@
-# image_segmentation.py
-
 import os
 import cv2
 
